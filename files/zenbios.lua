@@ -4,6 +4,9 @@ local I=c.invoke
 local function F(t)return c.list(t)()end
 local G,S,E=F("gpu"),F("screen"),F("eeprom")
 local y=1
+-- getBootAddress/setBootAddress are not part of the base API: keep them in EEPROM data
+p.getBootAddress=function()return E and I(E,"getData")or""end
+p.setBootAddress=function(a)return E and I(E,"setData",a)end
 if G and S then I(G,"bind",S)I(G,"setResolution",50,16)end
 local function cls()
  if G then I(G,"setBackground",0)I(G,"fill",1,1,50,16," ")end
@@ -105,12 +108,12 @@ local function menu(m)
 end
 cls()
 pr("ZenBIOS 1.0",0x00FF00)
-pr(p.totalMemory()//1024 .."K RAM",0x888888)
+pr(math.floor(p.totalMemory()/1024).."K RAM",0x888888)
 pr("Press any key for the boot menu...",0x888888)
 local t,k=p.uptime()+1.5
 repeat k=p.pullSignal(.1)=="key_down"until k or p.uptime()>t
 local d=p.getBootAddress()
-if not k and d then pcall(boot,d)end
+if not k and#d>0 then pcall(boot,d)end
 local auto=not k
 while 1 do
  local m={}

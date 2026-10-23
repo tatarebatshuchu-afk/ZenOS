@@ -197,7 +197,7 @@ print("done - reboot to apply")
 local text=require("text")
 local t,f=computer.totalMemory(),computer.freeMemory()
 print("RAM:    "..text.size(t-f).." used / "..text.size(t))
-print(string.format("Energy: %d / %d",computer.energy(),computer.maxEnergy()))
+print(string.format("Energy: %d / %d",math.floor(computer.energy()),math.floor(computer.maxEnergy())))
 ]]},
 {"/bin/grep.lua",[[
 local fs,args,text=require("fs"),require("args"),require("text")
@@ -456,7 +456,7 @@ print("password updated"..(a==""and" (empty = no password)"or""))
 local sched=require("sched")
 print("PID  PPID  UP(s)  NAME")
 for _,p in ipairs(sched.list())do
-  print(string.format("%-4d %-5s %-6d %s",p.pid,tostring(p.parent or"-"),computer.uptime()-p.start,p.name))
+  print(string.format("%-4d %-5s %-6d %s",p.pid,tostring(p.parent or"-"),math.floor(computer.uptime()-p.start),p.name))
 end
 ]]},
 {"/bin/pwd.lua",[[
@@ -607,6 +607,9 @@ local I=c.invoke
 local function F(t)return c.list(t)()end
 local G,S,E=F("gpu"),F("screen"),F("eeprom")
 local y=1
+-- getBootAddress/setBootAddress are not part of the base API: keep them in EEPROM data
+p.getBootAddress=function()return E and I(E,"getData")or""end
+p.setBootAddress=function(a)return E and I(E,"setData",a)end
 if G and S then I(G,"bind",S)I(G,"setResolution",50,16)end
 local function cls()
  if G then I(G,"setBackground",0)I(G,"fill",1,1,50,16," ")end
@@ -708,12 +711,12 @@ local function menu(m)
 end
 cls()
 pr("ZenBIOS 1.0",0x00FF00)
-pr(p.totalMemory()//1024 .."K RAM",0x888888)
+pr(math.floor(p.totalMemory()/1024).."K RAM",0x888888)
 pr("Press any key for the boot menu...",0x888888)
 local t,k=p.uptime()+1.5
 repeat k=p.pullSignal(.1)=="key_down"until k or p.uptime()>t
 local d=p.getBootAddress()
-if not k and d then pcall(boot,d)end
+if not k and#d>0 then pcall(boot,d)end
 local auto=not k
 while 1 do
  local m={}
@@ -2060,7 +2063,7 @@ function T.size(n)
   n=n or 0
   local u,i={"B","K","M","G"},1
   while n>=1024 and i<#u do n=n/1024;i=i+1 end
-  if i==1 then return string.format("%d%s",n,u[i])end
+  if i==1 then return string.format("%d%s",math.floor(n),u[i])end
   return string.format("%.1f%s",n,u[i])
 end
 function T.lines(d)
@@ -2163,7 +2166,7 @@ local function rc()
   end
 end
 
-term.write(string.format("\27[36m%s %s\27[0m  (%s, %dK RAM)\n",_OSNAME,_OSVERSION,_VERSION,computer.totalMemory()//1024))
+term.write(string.format("\27[36m%s %s\27[0m  (%s, %dK RAM)\n",_OSNAME,_OSVERSION,_VERSION,math.floor(computer.totalMemory()/1024)))
 rc()
 while true do
   local name,home=users.login()
@@ -2188,6 +2191,9 @@ local I=c.invoke
 local function F(t)return c.list(t)()end
 local G,S,E=F("gpu"),F("screen"),F("eeprom")
 local y=1
+-- getBootAddress/setBootAddress are not part of the base API: keep them in EEPROM data
+p.getBootAddress=function()return E and I(E,"getData")or""end
+p.setBootAddress=function(a)return E and I(E,"setData",a)end
 if G and S then I(G,"bind",S)I(G,"setResolution",50,16)end
 local function cls()
  if G then I(G,"setBackground",0)I(G,"fill",1,1,50,16," ")end
@@ -2289,12 +2295,12 @@ local function menu(m)
 end
 cls()
 pr("ZenBIOS 1.0",0x00FF00)
-pr(p.totalMemory()//1024 .."K RAM",0x888888)
+pr(math.floor(p.totalMemory()/1024).."K RAM",0x888888)
 pr("Press any key for the boot menu...",0x888888)
 local t,k=p.uptime()+1.5
 repeat k=p.pullSignal(.1)=="key_down"until k or p.uptime()>t
 local d=p.getBootAddress()
-if not k and d then pcall(boot,d)end
+if not k and#d>0 then pcall(boot,d)end
 local auto=not k
 while 1 do
  local m={}
